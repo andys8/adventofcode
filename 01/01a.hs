@@ -7,19 +7,20 @@ import Data.Maybe
 import Text.Read
 import Common.Test
 
-stripPlus :: String -> String
-stripPlus ('+':a) = a
-stripPlus str     = str
-
-toIntList :: [String] -> [Integer]
-toIntList = map ((\l -> read l :: Integer) . stripPlus)
+main = do
+  fileString <- readFile "01/01a.txt"
+  return $ solve fileString
 
 solve :: String -> Integer
-solve = sum . toIntList . lines
+solve = sum . map toInt . lines
 
-main = do
-  fileString <- readFile "01a.txt"
-  return $ solve fileString
+stripPlus :: String -> String
+stripPlus ('+':a) = a
+stripPlus a       = a
+
+toInt :: String -> Integer
+toInt s = read (stripPlus s) :: Integer
+
 
 -- Test
 

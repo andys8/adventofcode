@@ -9,26 +9,23 @@ import Data.Maybe
 import Common.Test
 
 
-findResult intList = findResultHelp [0] infiniteList
-  where infiniteList = cycle intList
-
-
-findResultHelp sums [] = Nothing
-findResultHelp sums (i:is) =
-  let currentSum = i + head sums
-  in  if elem currentSum sums
-        then Just currentSum
-        else findResultHelp (currentSum : sums) is
-
-
+main :: IO ()
 main = do
-  fileString <- readFile "01b.txt"
-  return $ solve fileString
+  fileString <- readFile "01/01b.txt"
+  putStrLn $ show $ solve fileString
   where solve = findResult . map toInt . lines
+
+findResult :: (Eq a, Num a) => [a] -> Maybe a
+findResult intList = findAcc [0] (cycle intList)
+ where
+  findAcc sums [] = Nothing
+  findAcc sums (i:is) =
+    let s = i + head sums
+    in  if elem s sums then Just s else findAcc (s : sums) is
 
 stripPlus :: String -> String
 stripPlus ('+':a) = a
-stripPlus str     = str
+stripPlus a       = a
 
 toInt :: String -> Integer
 toInt s = read (stripPlus s) :: Integer
