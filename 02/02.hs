@@ -21,42 +21,38 @@ main = do
 
 -- Part A
 
-solvePartA :: (Eq a, Num a) => [String] -> a
+solvePartA :: [String] -> Int
 solvePartA = totalCheckSum . map checkSum . map countChars
 
 countChars :: Num a => String -> Map.Map Char (a)
 countChars str = foldr' (\c map -> Map.insertWith (+) c 1 map) Map.empty str
 
-checkSum :: (Eq a, Num a) => Map.Map Char a -> (a, a)
-checkSum charCounts = (asValue twos, asValue threes)
+checkSum :: (Eq a, Num a) => Map.Map Char a -> (Bool, Bool)
+checkSum charCounts = (hasN 2, hasN 3)
  where
   charCountList = Map.toList charCounts
-  twos          = find (\(_, count) -> count == 2) charCountList
-  threes        = find (\(_, count) -> count == 3) charCountList
-  asValue Nothing = 0
-  asValue _       = 1
+  findCount count = find ((==) count . snd)
+  hasN n = isJust $ findCount n charCountList
 
-totalCheckSum :: Num a => [(a, a)] -> a
-totalCheckSum tupleList = twos * threes
- where
-  twos   = sum $ map (fst) tupleList
-  threes = sum $ map (snd) tupleList
+totalCheckSum :: [(Bool, Bool)] -> Int
+totalCheckSum tupleList = (toSum fst) * (toSum snd)
+  where toSum focus = sum $ map (fromEnum . focus) tupleList
 
 -- Part B
 
-solvePartB ids = res2
+solvePartB :: [String] -> Maybe String
+solvePartB ids = extractId $ findPair $ groupById ids
  where
-  sorted  = sort ids
-  grouped = groupBy idMatch sorted
-  res     = find (\l -> length l == 2) grouped
-  res2    = fmap (\[a, b] -> toId (a, b)) res
+  groupById = groupBy idMatch . sort
+  findPair  = find (\l -> length l == 2)
+  extractId = fmap (\[a, b] -> toId a b)
 
-idMatch str1 str2 = length filtered == 1
- where
-  zipList  = zip str1 str2
-  filtered = filter (\(a, b) -> a /= b) zipList
+idMatch :: String -> String -> Bool
+idMatch s1 s2 = length id == length s1 - 1
+    where id = toId s1 s2
 
-toId (str1, str2) = map fst $ filter (\(a, b) -> a == b) $ zip str1 str2
+toId :: String -> String -> String
+toId s1 s2 = map fst $ filter (\(a, b) -> a == b) $ zip s1 s2
 
 -- Test
 
@@ -76,12 +72,14 @@ testCharCounts = runTests
 
 testCheckSum = runTests
   checkSum
-  [ (Map.fromList [('a', 1), ('b', 1), ('c', 1)], (0, 0))
-  , (Map.fromList [('a', 2), ('b', 3), ('c', 1)], (1, 1))
-  , (Map.fromList [('a', 2), ('b', 3), ('c', 2)], (1, 1))
+  [ (Map.fromList [('a', 1), ('b', 1), ('c', 1)], (False, False))
+  , (Map.fromList [('a', 2), ('b', 3), ('c', 1)], (True, True))
+  , (Map.fromList [('a', 2), ('b', 3), ('c', 2)], (True, True))
   ]
 
-testTotalCheckSum = runTests totalCheckSum [([(1, 1), (1, 0), (0, 0)], 2 * 1)]
+testTotalCheckSum = runTests
+  totalCheckSum
+  [([(True, True), (True, False), (False, False)], 2 * 1)]
 
 testSolvePartA =
   runTests solvePartA [(["aabbcc", "abb", "", "bbb", "aaabbb", "abbba"], 9)]
