@@ -52,7 +52,7 @@ idMatch s1 s2 = length id == length s1 - 1
     where id = toId s1 s2
 
 toId :: String -> String -> String
-toId s1 s2 = map fst $ filter (\(a, b) -> a == b) $ zip s1 s2
+toId s1 s2 = map fst $ filter (uncurry (==)) $ zip s1 s2
 
 -- Test
 
