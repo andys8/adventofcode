@@ -44,12 +44,11 @@ solvePartB :: [String] -> Maybe String
 solvePartB ids = extractId $ findPair $ groupById ids
  where
   groupById = groupBy idMatch . sort
-  findPair  = find (\l -> length l == 2)
+  findPair  = find ((==) 2 . length)
   extractId = fmap (\[a, b] -> toId a b)
 
 idMatch :: String -> String -> Bool
-idMatch s1 s2 = length id == length s1 - 1
-    where id = toId s1 s2
+idMatch s1 s2 = length (toId s1 s2) == length s1 - 1
 
 toId :: String -> String -> String
 toId s1 s2 = map fst $ filter (uncurry (==)) $ zip s1 s2
