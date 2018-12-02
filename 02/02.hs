@@ -5,16 +5,23 @@ module Day02a (main, test) where
 import Debug.Trace
 import Text.Read
 import Common.Test
-import Data.Map.Strict as Map hiding (map, foldr')
+import Data.Maybe as Maybe
+import qualified Data.Map.Strict as Map
 import Data.Foldable
 import Data.Monoid
+import Data.List
 
-main :: IO Integer
+main :: IO ()
 main = do
   fileString <- readFile "02/02.txt"
-  return $ solvePartA $ lines fileString
+  let fileLines = lines fileString
+  putStrLn $ show $ solvePartA fileLines
+  putStrLn $ show $ solvePartB fileLines
+  return ()
 
-solvePartA :: (Eq a,Num a) => [String] -> a
+-- Part A
+
+solvePartA :: (Eq a, Num a) => [String] -> a
 solvePartA = totalCheckSum . map checkSum . map countChars
 
 countChars :: Num a => String -> Map.Map Char (a)
@@ -35,6 +42,22 @@ totalCheckSum tupleList = twos * threes
   twos   = sum $ map (fst) tupleList
   threes = sum $ map (snd) tupleList
 
+-- Part B
+
+solvePartB ids = res2
+ where
+  sorted  = sort ids
+  grouped = groupBy idMatch sorted
+  res     = find (\l -> length l == 2) grouped
+  res2    = fmap (\[a, b] -> toId (a, b)) res
+
+idMatch str1 str2 = length filtered == 1
+ where
+  zipList  = zip str1 str2
+  filtered = filter (\(a, b) -> a /= b) zipList
+
+toId (str1, str2) = map fst $ filter (\(a, b) -> a == b) $ zip str1 str2
+
 -- Test
 
 test = do
@@ -42,6 +65,8 @@ test = do
   testCheckSum
   testTotalCheckSum
   testSolvePartA
+  testIdMatch
+  testSolvePartB
 
 testCharCounts = runTests
   countChars
@@ -60,3 +85,13 @@ testTotalCheckSum = runTests totalCheckSum [([(1, 1), (1, 0), (0, 0)], 2 * 1)]
 
 testSolvePartA =
   runTests solvePartA [(["aabbcc", "abb", "", "bbb", "aaabbb", "abbba"], 9)]
+
+testIdMatch = runTests (idMatch "abcde")
+                       [("abcdf", True), ("safd", False), ("abcxx", False)]
+
+testSolvePartB = runTests
+  solvePartB
+  [ ( ["abcde", "fghij", "klmno", "pqrst", "fguij", "axcye", "wvxyz"]
+    , Just "fgij"
+    )
+  ]
