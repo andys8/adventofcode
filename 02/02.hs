@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Day02a (main, test) where
+module Day02 (main, test) where
 
 import Debug.Trace
 import Text.Read
