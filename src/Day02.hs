@@ -6,14 +6,14 @@ import Debug.Trace
 import Text.Read
 import Common.Test
 import Data.Maybe as Maybe
-import qualified Data.Map.Strict as Map
+import qualified Data.Map as Map
 import Data.Foldable
 import Data.Monoid
 import Data.List
 
 main :: IO ()
 main = do
-  fileString <- readFile "02/02.txt"
+  fileString <- readFile "src/input/02.txt"
   let fileLines = lines fileString
   putStrLn $ show $ solvePartA fileLines
   putStrLn $ show $ solvePartB fileLines

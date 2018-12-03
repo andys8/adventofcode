@@ -11,7 +11,7 @@ import Common.Test
 
 main :: IO ()
 main = do
-  fileString <- readFile "01/01b.txt"
+  fileString <- readFile "src/input/01.txt"
   putStrLn $ show $ solve fileString
   where solve = findResult . map toInt . lines
 

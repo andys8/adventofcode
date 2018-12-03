@@ -1,8 +1,5 @@
 module Main (main) where
 
-import qualified Day03
-
 main :: IO ()
 main = do
-    Day03.main
-
+    putStrLn "Execute single modules, see README.md"
