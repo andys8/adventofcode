@@ -6,6 +6,7 @@ module Day03 (main, test) where
 import Debug.Trace
 import Text.Read
 import Common.Test
+import qualified Data.Map as Map
 import Data.Maybe as Maybe
 import Data.Foldable
 import Data.Monoid
@@ -32,7 +33,10 @@ data Claim = Claim { id :: Int, x :: Int, y :: Int, width :: Int, height :: Int 
 
 solvePartA :: [String] -> Int
 -- solvePartA = totalCheckSum . map checkSum . map countChars
-solvePartA _ = 0
+solvePartA lines = overlappingClaimCount map
+ where
+  claims = toClaim <$> lines
+  map    = claimsToMap claims
 
 -- "#1 @ 1,3: 4x4"
 toClaim :: String -> Claim
@@ -51,6 +55,32 @@ toClaim s = Claim
   [width   , height]  = T.splitOn "x" size
   toInt t = read (T.unpack t) :: Int
 
+claimToMap :: Claim -> Map.Map String [Claim]
+claimToMap claim@(Claim { x = posX, y = posY, width = width, height = height })
+  = Map.fromList res
+ where
+  list =
+    [ (x, y)
+    | x <- [posX .. (posX + width - 1)]
+    , y <- [posY .. (posY + height - 1)]
+    ]
+  res = fmap (\(x, y) -> (show x ++ "," ++ show y, [claim])) list
+
+claimsToMap :: [Claim] -> Map.Map String [Claim]
+claimsToMap claims = res
+ where
+  maps = fmap claimToMap claims
+  res  = Map.unionsWith (++) maps
+
+overlappingClaimCount :: Map.Map String [Claim] -> Int
+overlappingClaimCount claimMap = length list3
+ where
+  list  = Map.toList claimMap
+  list2 = snd <$> list
+  list3 = filter ((> 1) . length) list2
+
+-- claimMap :: [Claim] -> Map.Map String [Claim]
+-- claimMap claims = foldr' (\c map -> Map.insertWith (:) c 1 map) Map.empty claims
 
 
 -- countChars :: Num a => String -> Map.Map Char (a)
@@ -86,17 +116,26 @@ toClaim s = Claim
 
 test = do
   testToClaim
-  -- testCharCounts
-  -- testCheckSum
-  -- testTotalCheckSum
+  testClaimToMap
   testSolvePartA
-  -- testIdMatch
-  -- testSolvePartB
 
 testToClaim = runTests
   toClaim
   [ ("#1 @ 1,3: 4x4", Claim {id = 1, x = 1, y = 3, width = 4, height = 4})
   , ("#3 @ 5,5: 1x2", Claim {id = 3, x = 5, y = 5, width = 1, height = 2})
+  ]
+
+testClaimToMap = runTests
+  claimToMap
+  [ let claim = Claim {id = 3, x = 2, y = 5, width = 2, height = 2}
+    in  ( claim
+        , Map.fromList
+          [ ("2,5", [claim])
+          , ("3,5", [claim])
+          , ("2,6", [claim])
+          , ("3,6", [claim])
+          ]
+        )
   ]
 
 testSolvePartA =
