@@ -7,16 +7,15 @@ import Debug.Trace
 import Text.Read
 import Common.Test
 import Data.Maybe as Maybe
-import qualified Data.Map.Strict as Map
 import Data.Foldable
 import Data.Monoid
 import Data.List
-import qualified Data.Text (splitOn)
+import qualified Data.Text as T
 
 
 main :: IO ()
 main = do
-  fileString <- readFile "03/input.txt"
+  fileString <- readFile "src/input/03.txt"
   let fileLines = lines fileString
   putStrLn $ show $ solvePartA fileLines
   -- putStrLn $ show $ solvePartB fileLines
@@ -36,19 +35,21 @@ solvePartA :: [String] -> Int
 solvePartA _ = 0
 
 -- "#1 @ 1,3: 4x4"
-toClaim :: String -> Maybe Claim
--- toClaim ('#':id:' ':'@':' ':x:',':y:": ":width:'x':height:[]) = Just (Claim {id = read id :: Int})
-toClaim _ = Nothing
-
-
-toClaim s = Just
-  (Claim {id = id, x = x, y = y, width = width, height = height})
+toClaim :: String -> Claim
+toClaim s = Claim
+  { id     = toInt id
+  , x      = toInt x
+  , y      = toInt y
+  , width  = toInt width
+  , height = toInt height
+  }
  where
-  [beforeAt, afterAt] = splitOn " @ " s
-  id                  = read (drop 1 beforeAt) :: Int
-  [position, size  ]  = splitOn ": " afterAt
-  [x       , y     ]  = splitOn "," position
-  [width   , height]  = splitOn "x" size
+  [beforeAt, afterAt] = T.splitOn " @ " $ T.pack s
+  id                  = T.drop 1 beforeAt
+  [position, size  ]  = T.splitOn ": " afterAt
+  [x       , y     ]  = T.splitOn "," position
+  [width   , height]  = T.splitOn "x" size
+  toInt t = read (T.unpack t) :: Int
 
 
 
@@ -94,12 +95,8 @@ test = do
 
 testToClaim = runTests
   toClaim
-  [ ( "#1 @ 1,3: 4x4"
-    , Just (Claim {id = 1, x = 1, y = 3, width = 4, height = 4})
-    )
-  , ( "#3 @ 5,5: 1x2"
-    , Just (Claim {id = 3, x = 5, y = 5, width = 1, height = 2})
-    )
+  [ ("#1 @ 1,3: 4x4", Claim {id = 1, x = 1, y = 3, width = 4, height = 4})
+  , ("#3 @ 5,5: 1x2", Claim {id = 3, x = 5, y = 5, width = 1, height = 2})
   ]
 
 testSolvePartA =
