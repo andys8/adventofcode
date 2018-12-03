@@ -6,6 +6,7 @@ module Day03 (main, test) where
 import Debug.Trace
 import Common.Test
 import Data.List
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Set as Set
@@ -22,16 +23,7 @@ main = do
 
 -- Part A
 
-data Claim = Claim
-  { claimId :: Int
-  , x       :: Int
-  , y       :: Int
-  , width   :: Int
-  , height  :: Int
-  }
- deriving (Show, Eq, Ord)
-
-type PosClaimsMap = Map.Map String [Claim]
+data Claim = Claim { claimId, x, y, width, height :: Int } deriving (Show, Eq, Ord)
 
 solvePartA :: [String] -> Int
 solvePartA = length . overlaps . claimsToMap . fmap toClaim
@@ -52,7 +44,7 @@ toClaim s = Claim
   [x       , y     ]  = T.splitOn "," position
   [width   , height]  = T.splitOn "x" size
 
-claimToMap :: Claim -> PosClaimsMap
+claimToMap :: Claim -> Map String [Claim]
 claimToMap claim@(Claim { x = posX, y = posY, width = width, height = height })
   = Map.fromList
     [ (stringId x y, [claim])
@@ -61,10 +53,10 @@ claimToMap claim@(Claim { x = posX, y = posY, width = width, height = height })
     ]
   where stringId x y = show x ++ "," ++ show y
 
-claimsToMap :: [Claim] -> PosClaimsMap
+claimsToMap :: [Claim] -> Map String [Claim]
 claimsToMap = Map.unionsWith (++) . fmap claimToMap
 
-overlaps :: PosClaimsMap -> [[Claim]]
+overlaps :: Map String [Claim] -> [[Claim]]
 overlaps claimMap = filter ((> 1) . length) $ snd <$> Map.toList claimMap
 
 
