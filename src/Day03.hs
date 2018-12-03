@@ -9,8 +9,7 @@ import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import qualified Data.Set as Set
-import Data.Bifunctor (bimap)
+import qualified Data.Set as S
 
 
 main :: IO ()
@@ -63,13 +62,10 @@ overlaps claimMap = filter ((> 1) . length) $ snd <$> Map.toList claimMap
 -- Part B
 
 solvePartB :: [String] -> Int
-solvePartB lines = claimId $ head $ Set.toList overlapFree
- where
-  claims      = toClaim <$> lines
-  overlapFree = uncurry Set.difference $ bimap
-    Set.fromList
-    (Set.fromList . concat . overlaps . claimsToMap)
-    (claims, claims)
+solvePartB lines =
+  let claims = toClaim <$> lines
+      diff a b = S.toList $ S.difference (S.fromList a) (S.fromList b)
+  in  claimId $ head $ claims `diff` (concat $ overlaps $ claimsToMap claims)
 
 -- Test
 
