@@ -23,6 +23,7 @@ main = do
 -- Part A
 
 data Claim = Claim { claimId, x, y, width, height :: Int } deriving (Show, Eq, Ord)
+data Coord = Coord Int Int deriving (Show, Eq, Ord)
 
 solvePartA :: [String] -> Int
 solvePartA = length . overlaps . claimsToMap . fmap toClaim
@@ -43,19 +44,18 @@ toClaim s = Claim
   [x       , y     ]  = T.splitOn "," position
   [width   , height]  = T.splitOn "x" size
 
-claimToMap :: Claim -> Map String [Claim]
+claimToMap :: Claim -> Map Coord [Claim]
 claimToMap claim@(Claim { x = posX, y = posY, width = width, height = height })
   = Map.fromList
-    [ (stringId x y, [claim])
+    [ (Coord x y, [claim])
     | x <- [posX .. (posX + width - 1)]
     , y <- [posY .. (posY + height - 1)]
     ]
-  where stringId x y = show x ++ "," ++ show y
 
-claimsToMap :: [Claim] -> Map String [Claim]
+claimsToMap :: [Claim] -> Map Coord [Claim]
 claimsToMap = Map.unionsWith (++) . fmap claimToMap
 
-overlaps :: Map String [Claim] -> [[Claim]]
+overlaps :: Map Coord [Claim] -> [[Claim]]
 overlaps claimMap = filter ((> 1) . length) $ snd <$> Map.toList claimMap
 
 
@@ -86,10 +86,10 @@ testClaimToMap = runTests
   [ let claim = Claim {claimId = 3, x = 2, y = 5, width = 2, height = 2}
     in  ( claim
         , Map.fromList
-          [ ("2,5", [claim])
-          , ("3,5", [claim])
-          , ("2,6", [claim])
-          , ("3,6", [claim])
+          [ (Coord 2 5, [claim])
+          , (Coord 3 5, [claim])
+          , (Coord 2 6, [claim])
+          , (Coord 3 6, [claim])
           ]
         )
   ]
