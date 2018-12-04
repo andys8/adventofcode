@@ -28,7 +28,7 @@ main = do
   fileString <- readFile "src/input/04.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
-  -- print $ solvePartB fileLines
+  print $ solvePartB fileLines
   return ()
 
 -- Part A
@@ -42,22 +42,18 @@ instance Ord Log where
 solvePartA :: [String] -> Int
 solvePartA lines = guardId * minute
  where
-  logs    = sort $ rights $ fmap toLog lines
-  grouped = groupLogs logs
-  sleepMap =
-    traceShowId
-      $   Map.fromListWith (++)
-      $   traceShowId
-      $   sleepyMinutes
-      <$> grouped
+  logs               = sort $ rights $ fmap toLog lines
+  grouped            = groupLogs logs
+  sleepMap           = Map.fromListWith (++) $ sleepyMinutes <$> grouped
   (guardId, minutes) = findGuardWithMostSleep $ Map.toList sleepMap
-  minute             = mostCommon minutes
+  minute             = head $ mostCommons minutes
 
 findGuardWithMostSleep :: [(Int, [Int])] -> (Int, [Int])
 findGuardWithMostSleep list = last $ sortOn (\(_, mins) -> length mins) list
 
-mostCommon :: [Int] -> Int
-mostCommon = head . maximumBy (compare `on` length) . group . sort
+mostCommons :: [Int] -> [Int]
+mostCommons [] = []
+mostCommons list = maximumBy (compare `on` length) $ group $ sort list
 
 toLog :: String -> Either String Log
 toLog str = parseOnly logParser $ pack str
@@ -126,13 +122,25 @@ logParser = do
 -- Part B
 
 solvePartB :: [String] -> Int
-solvePartB lines = 1
+solvePartB lines = guardId * minute
+ where
+  logs      = sort $ rights $ fmap toLog lines
+  grouped   = groupLogs logs
+  sleepMap  = Map.fromListWith (++) $ sleepyMinutes <$> grouped
+  sleepList =  Map.toList sleepMap
+  mapped = (\(i,mins) -> (i, mostCommons mins)) <$> sleepList
+  res = sortOn (\(i, commons) -> length commons) $ traceShowId mapped
+  (guardId, minute : _) = last $ traceShowId res
+  -- (guardId, minutes) = findGuardWithMostSleep $ Map.toList sleepMap
+  -- minute             = mostCommons minutes
+
 
 -- Test
 
 test :: IO ()
 test = do
   testToLog
+  testMostCommons
   testSolvePartA
   testSolvePartB
 
@@ -178,6 +186,7 @@ testSolvePartA = runTests solvePartA [(sampleLog, 10 * 24)]
 
 testSolvePartB = runTests solvePartB [(sampleLog, 99 * 45)]
 
+testMostCommons = runTests mostCommons [([], [])]
 
 -- testSolvePartB =
 --   runTests solvePartB [(["#1 @ 1,3: 4x4", "#2 @ 3,1: 4x4", "#3 @ 5,5: 2x2"], 3)]
