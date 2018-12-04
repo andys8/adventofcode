@@ -6,21 +6,16 @@ module Day03
   )
 where
 
-import Debug.Trace
 import Common.Test
-import Data.Map (Map)
-import Data.Text (splitOn, unpack, pack)
 import qualified Data.Text as T
-import qualified Data.Set as S
 import qualified Data.Map as Map
 import Data.Dates
-import Data.Dates.Formats
 import Data.Attoparsec.Text
-import Data.Word
 import Control.Applicative
 import Data.Either
 import Data.List
 import Data.Function
+import Control.Arrow
 
 
 main :: IO ()
@@ -34,30 +29,32 @@ main = do
 -- Part A
 
 data Log = Log LogType DateTime deriving (Show, Eq)
-data LogType = ShiftStart Int | FallsAsleep | WakesUp deriving (Show, Eq, Ord)
+data LogType = ShiftStart Int
+             | FallsAsleep
+             | WakesUp deriving (Show, Eq, Ord)
 
 instance Ord Log where
     (Log _ d1) `compare` (Log _ d2) = d1 `compare` d2
 
 solvePartA :: [String] -> Int
-solvePartA lines = guardId * minute
+solvePartA logLines = guardId * commonMinute
  where
-  logs               = sort $ rights $ fmap toLog lines
-  grouped            = groupLogs logs
-  sleepMap           = Map.fromListWith (++) $ sleepyMinutes <$> grouped
+  sleepMap = Map.fromListWith (++) $ sleepyMinutes <$> groupLines logLines
   (guardId, minutes) = findGuardWithMostSleep $ Map.toList sleepMap
-  minute             = head $ mostCommons minutes
+  commonMinute = head $ mostCommons minutes
+
+groupLines :: [String] -> [[Log]]
+groupLines logLines = groupLogs $ sort $ rights $ fmap parseLog logLines
 
 findGuardWithMostSleep :: [(Int, [Int])] -> (Int, [Int])
 findGuardWithMostSleep list = last $ sortOn (\(_, mins) -> length mins) list
 
 mostCommons :: [Int] -> [Int]
-mostCommons [] = []
+mostCommons []   = []
 mostCommons list = maximumBy (compare `on` length) $ group $ sort list
 
-toLog :: String -> Either String Log
-toLog str = parseOnly logParser $ pack str
-
+parseLog :: String -> Either String Log
+parseLog str = parseOnly logParser $ T.pack str
 
 groupLogs :: [Log] -> [[Log]]
 groupLogs = groupBy groupFn
@@ -74,17 +71,17 @@ sleepyMinutes logs = (guardId, minutes)
 sleepAnalysis :: [Log] -> [Int] -> [Int]
 sleepAnalysis [] mins = mins
 sleepAnalysis (Log FallsAsleep d1 : Log WakesUp d2 : logs) mins =
-  sleepAnalysis logs (mins ++ sleepToMinutes d1 d2)
+  sleepAnalysis logs (mins ++ minsBetweeenTimes d1 d2)
 sleepAnalysis (_ : rest) mins = sleepAnalysis rest mins
 
-sleepToMinutes :: DateTime -> DateTime -> [Int]
-sleepToMinutes d1 d2 = [m1 .. m2]
+minsBetweeenTimes :: DateTime -> DateTime -> [Int]
+minsBetweeenTimes d1 d2 = [m1 .. m2]
  where
   m1 = minute d1
   m2 = minute d2 - 1
 
-timeParser :: Parser DateTime
-timeParser = do
+dateTimeParser :: Parser DateTime
+dateTimeParser = do
   _    <- char '['
   yyyy <- count 4 digit
   _    <- char '-'
@@ -103,7 +100,7 @@ shiftStartParser :: Parser LogType
 shiftStartParser = do
   _       <- string "Guard #"
   guardId <- decimal
-  return $ ShiftStart (fromIntegral guardId)
+  return $ ShiftStart guardId
 
 logTypeParser :: Parser LogType
 logTypeParser =
@@ -113,40 +110,34 @@ logTypeParser =
 
 logParser :: Parser Log
 logParser = do
-  t       <- timeParser
-  _       <- char ' '
-  logType <- logTypeParser
-  return $ Log logType t
+  dateTime <- dateTimeParser
+  _        <- char ' '
+  logType  <- logTypeParser
+  return $ Log logType dateTime
 
 
 -- Part B
 
 solvePartB :: [String] -> Int
-solvePartB lines = guardId * minute
+solvePartB logLines = guardId * commonMinute
  where
-  logs      = sort $ rights $ fmap toLog lines
-  grouped   = groupLogs logs
-  sleepMap  = Map.fromListWith (++) $ sleepyMinutes <$> grouped
-  sleepList =  Map.toList sleepMap
-  mapped = (\(i,mins) -> (i, mostCommons mins)) <$> sleepList
-  res = sortOn (\(i, commons) -> length commons) $ traceShowId mapped
-  (guardId, minute : _) = last $ traceShowId res
-  -- (guardId, minutes) = findGuardWithMostSleep $ Map.toList sleepMap
-  -- minute             = mostCommons minutes
+  sleepMap = Map.fromListWith (++) $ sleepyMinutes <$> groupLines logLines
+  mapped = Control.Arrow.second mostCommons <$> Map.toList sleepMap
+  (guardId, commonMinute : _) = last $ sortOn (length . snd) mapped
 
 
 -- Test
 
 test :: IO ()
 test = do
-  testToLog
+  testParseLog
   testMostCommons
   testSolvePartA
   testSolvePartB
 
-testToLog :: IO ()
-testToLog = runTests
-  toLog
+testParseLog :: IO ()
+testParseLog = runTests
+  parseLog
   [ ( "[1518-11-01 00:00] Guard #10 begins shift"
     , Right $ Log (ShiftStart 10) (DateTime 1518 11 01 0 0 0)
     )
@@ -182,12 +173,12 @@ sampleLog =
   , "[1518-11-05 00:55] wakes up"
   ]
 
+testSolvePartA :: IO ()
 testSolvePartA = runTests solvePartA [(sampleLog, 10 * 24)]
 
+testSolvePartB :: IO ()
 testSolvePartB = runTests solvePartB [(sampleLog, 99 * 45)]
 
+testMostCommons :: IO ()
 testMostCommons = runTests mostCommons [([], [])]
-
--- testSolvePartB =
---   runTests solvePartB [(["#1 @ 1,3: 4x4", "#2 @ 3,1: 4x4", "#3 @ 5,5: 2x2"], 3)]
 
