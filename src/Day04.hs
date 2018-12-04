@@ -19,36 +19,32 @@ import Data.Attoparsec.Text
 -- import Data.Attoparsec.Char8
 import Data.Word
 import Control.Applicative
+import Data.Either
+import Data.List
 
 main :: IO ()
 main = do
   fileString <- readFile "src/input/04.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
-  print $ parseOnly timeParser "2013-06-30 14:33:29"
   -- print $ solvePartB fileLines
   return ()
 
 -- Part A
 
-data Claim = Claim { claimId, x, y, width, height :: Int } deriving (Show, Eq, Ord)
-data Coord = Coord Int Int deriving (Show, Eq, Ord)
-
-data Log = Log LogType DateTime deriving (Show, Eq, Ord)
+data Log = Log LogType DateTime deriving (Show, Eq)
 data LogType = ShiftStart Integer | FallsAsleep | WakesUp deriving (Show, Eq, Ord)
 
+instance Ord Log where
+    (Log _ d1) `compare` (Log _ d2) = d1 `compare` d2
+
 solvePartA :: [String] -> String
-solvePartA _ = "wrong"
+solvePartA lines = show logs where logs = sort $ rights $ fmap toLog lines
 -- solvePartA = length . overlaps . claimsToMap . fmap toClaim
 
 
-toLog :: String -> Log
-toLog str = res2
- where
-  res  = parseOnly logParser $ pack str
-  res2 = case res of
-    Right t -> t
-    Left  _ -> Log WakesUp (DateTime 2019 10 10 23 0 0)
+toLog :: String -> Either String Log
+toLog str = res where res = parseOnly logParser $ pack str
   -- parts = traceShowId $ words str
   -- fixedDateString =
   --   filter (\c -> c /= '[' && c /= ']') $ traceShowId $ head parts
@@ -66,9 +62,9 @@ timeParser = do
   _    <- char '-'
   mm   <- count 2 digit
   _    <- char '-'
-  dd    <- count 2 digit
+  dd   <- count 2 digit
   _    <- char ' '
-  hh    <- count 2 digit
+  hh   <- count 2 digit
   _    <- char ':'
   m    <- count 2 digit
   _    <- char ']'
@@ -76,7 +72,7 @@ timeParser = do
 
 parseShiftStart :: Parser LogType
 parseShiftStart = do
-  _ <- string "Guard #"
+  _       <- string "Guard #"
   guardId <- decimal
   return $ ShiftStart guardId
 
@@ -88,8 +84,8 @@ productParser =
 
 logParser :: Parser Log
 logParser = do
-  t <- timeParser
-  _ <- char ' '
+  t       <- timeParser
+  _       <- char ' '
   logType <- productParser
   return $ Log logType t
 
@@ -145,14 +141,16 @@ testToLog :: IO ()
 testToLog = runTests
   toLog
   [ ( "[1518-11-01 00:00] Guard #10 begins shift"
-    , Log (ShiftStart 10) (DateTime 1518 11 01 0 0 0)
+    , Right $ Log (ShiftStart 10) (DateTime 1518 11 01 0 0 0)
     )
   , ( "[1518-11-01 00:59] Guard #123 begins shift"
-    , Log (ShiftStart 123) (DateTime 1518 11 01 0 59 0)
+    , Right $ Log (ShiftStart 123) (DateTime 1518 11 01 0 59 0)
     )
-  , ("[1518-11-04 00:46] wakes up", Log WakesUp (DateTime 1518 11 4 0 46 0))
+  , ( "[1518-11-04 00:46] wakes up"
+    , Right $ Log WakesUp (DateTime 1518 11 4 0 46 0)
+    )
   , ( "[1518-11-04 00:46] falls asleep"
-    , Log FallsAsleep (DateTime 1518 11 4 0 46 0)
+    , Right $ Log FallsAsleep (DateTime 1518 11 4 0 46 0)
     )
   ]
 
