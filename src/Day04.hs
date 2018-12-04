@@ -16,11 +16,12 @@ import qualified Data.Map as Map
 import Data.Dates
 import Data.Dates.Formats
 import Data.Attoparsec.Text
--- import Data.Attoparsec.Char8
 import Data.Word
 import Control.Applicative
 import Data.Either
 import Data.List
+import Data.Function
+
 
 main :: IO ()
 main = do
@@ -33,27 +34,58 @@ main = do
 -- Part A
 
 data Log = Log LogType DateTime deriving (Show, Eq)
-data LogType = ShiftStart Integer | FallsAsleep | WakesUp deriving (Show, Eq, Ord)
+data LogType = ShiftStart Int | FallsAsleep | WakesUp deriving (Show, Eq, Ord)
 
 instance Ord Log where
     (Log _ d1) `compare` (Log _ d2) = d1 `compare` d2
 
-solvePartA :: [String] -> String
-solvePartA lines = show logs where logs = sort $ rights $ fmap toLog lines
--- solvePartA = length . overlaps . claimsToMap . fmap toClaim
+solvePartA :: [String] -> Int
+solvePartA lines = guardId * minute
+ where
+  logs    = sort $ rights $ fmap toLog lines
+  grouped = groupLogs logs
+  sleepMap =
+    traceShowId
+      $   Map.fromListWith (++)
+      $   traceShowId
+      $   sleepyMinutes
+      <$> grouped
+  (guardId, minutes) = findGuardWithMostSleep $ Map.toList sleepMap
+  minute             = mostCommon minutes
 
+findGuardWithMostSleep :: [(Int, [Int])] -> (Int, [Int])
+findGuardWithMostSleep list = last $ sortOn (\(_, mins) -> length mins) list
+
+mostCommon :: [Int] -> Int
+mostCommon = head . maximumBy (compare `on` length) . group . sort
 
 toLog :: String -> Either String Log
-toLog str = res where res = parseOnly logParser $ pack str
-  -- parts = traceShowId $ words str
-  -- fixedDateString =
-  --   filter (\c -> c /= '[' && c /= ']') $ traceShowId $ head parts
-  -- tmp = traceShowId $ parseDateFormat "YYYY-MM-DD HH:mm" $ traceShowId
-  --   fixedDateString
-  -- res = case tmp of
-  --   Left  _ -> Log ShiftStart (DateTime 2019 10 10 23 0 0)
-  --   Right t -> Log ShiftStart t
+toLog str = parseOnly logParser $ pack str
 
+
+groupLogs :: [Log] -> [[Log]]
+groupLogs = groupBy groupFn
+ where
+  groupFn _ (Log (ShiftStart _) _) = False
+  groupFn _ _                      = True
+
+sleepyMinutes :: [Log] -> (Int, [Int])
+sleepyMinutes logs = (guardId, minutes)
+ where
+  Log (ShiftStart guardId) _ : rest = logs
+  minutes                           = sleepAnalysis rest []
+
+sleepAnalysis :: [Log] -> [Int] -> [Int]
+sleepAnalysis [] mins = mins
+sleepAnalysis (Log FallsAsleep d1 : Log WakesUp d2 : logs) mins =
+  sleepAnalysis logs (mins ++ sleepToMinutes d1 d2)
+sleepAnalysis (_ : rest) mins = sleepAnalysis rest mins
+
+sleepToMinutes :: DateTime -> DateTime -> [Int]
+sleepToMinutes d1 d2 = [m1 .. m2]
+ where
+  m1 = minute d1
+  m2 = minute d2 - 1
 
 timeParser :: Parser DateTime
 timeParser = do
@@ -70,15 +102,16 @@ timeParser = do
   _    <- char ']'
   return $ DateTime (read yyyy) (read mm) (read dd) (read hh) (read m) 0
 
-parseShiftStart :: Parser LogType
-parseShiftStart = do
+
+shiftStartParser :: Parser LogType
+shiftStartParser = do
   _       <- string "Guard #"
   guardId <- decimal
-  return $ ShiftStart guardId
+  return $ ShiftStart (fromIntegral guardId)
 
-productParser :: Parser LogType
-productParser =
-  parseShiftStart
+logTypeParser :: Parser LogType
+logTypeParser =
+  shiftStartParser
     <|> (string "falls asleep" >> return FallsAsleep)
     <|> (string "wakes up" >> return WakesUp)
 
@@ -86,48 +119,14 @@ logParser :: Parser Log
 logParser = do
   t       <- timeParser
   _       <- char ' '
-  logType <- productParser
+  logType <- logTypeParser
   return $ Log logType t
-
--- toClaim :: String -> Claim
--- toClaim s = Claim
---   { claimId = toInt claimId
---   , x       = toInt x
---   , y       = toInt y
---   , width   = toInt width
---   , height  = toInt height
---   }
---  where
---   toInt t = read (unpack t) :: Int
---   [beforeAt, afterAt] = splitOn " @ " $ pack s
---   claimId             = T.drop 1 beforeAt
---   [position, size  ]  = splitOn ": " afterAt
---   [x       , y     ]  = splitOn "," position
---   [width   , height]  = splitOn "x" size
-
--- claimToMap :: Claim -> Map Coord [Claim]
--- claimToMap claim@Claim { x = posX, y = posY, width = width, height = height } =
---   Map.fromList
---     [ (Coord x y, [claim])
---     | x <- [posX .. (posX + width - 1)]
---     , y <- [posY .. (posY + height - 1)]
---     ]
-
--- claimsToMap :: [Claim] -> Map Coord [Claim]
--- claimsToMap = Map.unionsWith (++) . fmap claimToMap
-
--- overlaps :: Map Coord [Claim] -> [[Claim]]
--- overlaps claimMap = filter ((> 1) . length) $ snd <$> Map.toList claimMap
 
 
 -- Part B
 
--- solvePartB :: [String] -> Int
--- solvePartB lines =
---   let
---     claims = toClaim <$> lines
---     diff a b = S.toList $ S.difference (S.fromList a) (S.fromList b)
---   in claimId $ head $ claims `diff` concat (overlaps $ claimsToMap claims)
+solvePartB :: [String] -> Int
+solvePartB lines = 1
 
 -- Test
 
@@ -135,7 +134,7 @@ test :: IO ()
 test = do
   testToLog
   testSolvePartA
-   -- testSolvePartB
+  testSolvePartB
 
 testToLog :: IO ()
 testToLog = runTests
@@ -154,9 +153,31 @@ testToLog = runTests
     )
   ]
 
-testSolvePartA = runTests
-  solvePartA
-  [(["#1 @ 1,3: 4x4", "#2 @ 3,1: 4x4", "#3 @ 5,5: 2x2"], "20")]
+sampleLog :: [String]
+sampleLog =
+  [ "[1518-11-01 00:00] Guard #10 begins shift"
+  , "[1518-11-01 00:05] falls asleep"
+  , "[1518-11-01 00:25] wakes up"
+  , "[1518-11-01 00:30] falls asleep"
+  , "[1518-11-01 00:55] wakes up"
+  , "[1518-11-01 23:58] Guard #99 begins shift"
+  , "[1518-11-02 00:40] falls asleep"
+  , "[1518-11-02 00:50] wakes up"
+  , "[1518-11-03 00:05] Guard #10 begins shift"
+  , "[1518-11-03 00:24] falls asleep"
+  , "[1518-11-03 00:29] wakes up"
+  , "[1518-11-04 00:02] Guard #99 begins shift"
+  , "[1518-11-04 00:36] falls asleep"
+  , "[1518-11-04 00:46] wakes up"
+  , "[1518-11-05 00:03] Guard #99 begins shift"
+  , "[1518-11-05 00:45] falls asleep"
+  , "[1518-11-05 00:55] wakes up"
+  ]
+
+testSolvePartA = runTests solvePartA [(sampleLog, 10 * 24)]
+
+testSolvePartB = runTests solvePartB [(sampleLog, 99 * 45)]
+
 
 -- testSolvePartB =
 --   runTests solvePartB [(["#1 @ 1,3: 4x4", "#2 @ 3,1: 4x4", "#3 @ 5,5: 2x2"], 3)]
