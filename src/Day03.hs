@@ -8,6 +8,7 @@ import Common.Test
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Text (splitOn, unpack, pack)
 import qualified Data.Text as T
 import qualified Data.Set as S
 
@@ -37,12 +38,12 @@ toClaim s = Claim
   , height  = toInt height
   }
  where
-  toInt t = read (T.unpack t) :: Int
-  [beforeAt, afterAt] = T.splitOn " @ " $ T.pack s
+  toInt t = read (unpack t) :: Int
+  [beforeAt, afterAt] = splitOn " @ " $ pack s
   claimId             = T.drop 1 beforeAt
-  [position, size  ]  = T.splitOn ": " afterAt
-  [x       , y     ]  = T.splitOn "," position
-  [width   , height]  = T.splitOn "x" size
+  [position, size  ]  = splitOn ": " afterAt
+  [x       , y     ]  = splitOn "," position
+  [width   , height]  = splitOn "x" size
 
 claimToMap :: Claim -> Map Coord [Claim]
 claimToMap claim@(Claim { x = posX, y = posY, width = width, height = height })
