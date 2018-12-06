@@ -17,8 +17,8 @@ main :: IO ()
 main = do
   fileString <- readFile "src/input/06.txt"
   let fileLines = lines fileString
-  print $ solvePartA fileLines
-  print $ solvePartB fileLines
+  -- print $ solvePartA fileLines
+  print $ solvePartB 10000 fileLines
   return ()
 
 -- Part A
@@ -40,12 +40,13 @@ instance Ord DistanceTo where
 
 solvePartA :: [String] -> Int
 solvePartA lines = maxSize
-  where coords = parseCoord <$> lines
-        size = fieldSize coords
-        distanceFields = fmap (distanceField size) coords
-        m = mergeDistanceFields distanceFields
-        r = resultDistanceField m
-        maxSize = toMaxSize size r
+ where
+  coords         = parseCoord <$> lines
+  size           = fieldSize coords
+  distanceFields = fmap (distanceField size) coords
+  m              = mergeDistanceFields distanceFields
+  r              = resultDistanceField m
+  maxSize        = toMaxSize size r
 
 parseCoord :: String -> Coord
 parseCoord str = Coord (read x) (read y)
@@ -102,21 +103,34 @@ toMaxSize (FieldSize (Coord minX minY) (Coord maxX maxY)) (ResultDistanceField l
   shouldBeDropped (coord, Just (DistanceTo c d)) =
     if isEdge coord then Just c else Nothing
   shouldBeDropped _ = Nothing
-  infinites = nub $ catMaybes $ map shouldBeDropped  list
+  infinites = nub $ catMaybes $ map shouldBeDropped list
   isGood (coord, Just (DistanceTo c d)) = notElem c infinites
   isGood (coord, _                    ) = False
   res = filter (isGood) list
   toCoord (DistanceTo c d) = c
-  resCoords = fmap toCoord $ catMaybes $ snd <$> res
-  maximumSize = maximum $ fmap length $group $ sort resCoords
+  resCoords   = fmap toCoord $ catMaybes $ snd <$> res
+  maximumSize = maximum $ fmap length $ group $ sort resCoords
 
 
 
 
 -- Part B
 
-solvePartB :: [String] -> Int
-solvePartB _ = 1
+solvePartB :: Int -> [String] -> Int
+solvePartB exclusiveLimit lines = res
+ where
+  coords    = parseCoord <$> lines
+  (FieldSize (Coord minX minY) (Coord maxX maxY)) = fieldSize coords
+  allCoords = [ Coord x y | x <- [minX .. maxX], y <- [minY .. maxY] ]
+  safeCoords =
+    filter (\c -> toInt (distToAll c coords) < exclusiveLimit) allCoords
+  res = length safeCoords
+
+
+distToAll :: Coord -> [Coord] -> Distance
+distToAll coord coords = Distance $ sum $ fmap (toInt . distance coord) coords
+
+toInt (Distance i) = i
 
 -- Test
 
@@ -128,9 +142,8 @@ test = do
   testDistance
   testDistanceField
   testShortestDistance
-  -- testReactString
-  -- testSolvePartB
-  -- testRemoveUnit
+  testSolvePartB
+  testDistToAll
   return ()
 
 
@@ -195,6 +208,10 @@ testShortestDistance
       ]
 
 
+testSolvePartB :: IO ()
+testSolvePartB = runTests (solvePartB 32) [(sample, 16)]
 
 
+testDistToAll =
+  runTests (uncurry distToAll) [((Coord 4 3, coordSample), Distance 30)]
 
