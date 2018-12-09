@@ -8,12 +8,16 @@ module Day05
 where
 
 import Common.Test
-import qualified Data.Map as Map
 import Data.List
 import Control.Arrow
 import Debug.Trace
 import Data.Maybe
 
+import qualified Data.Map.Strict as Map
+import qualified Data.List as List
+import Data.Maybe
+import Data.Char
+import Data.Ord
 
 main :: IO ()
 main = do
@@ -31,7 +35,7 @@ solvePartA :: [String] -> String
 solvePartA strLines = str
  where
   tuples = parseLine <$> strLines
-  str    = stringify2 tuples
+  str    = part1 $ graph tuples
 
 
 parseLine :: String -> Order
@@ -40,6 +44,28 @@ parseLine str = Order from to
   parts    = words str
   from : _ = parts !! 1
   to   : _ = parts !! 7
+
+stringify3 :: [Order] -> String
+stringify3 os = ""
+
+toFrom (Order from _) = from
+toTo (Order _ to) = to
+
+graph :: [Order] -> Map.Map Char String
+graph input =
+  let
+    all     = List.nub $ (map toFrom input) ++ (map toTo input)
+    pending = foldl
+      (\acc (Order from to) -> Map.insertWith (++) (to) [(from)] acc)
+      Map.empty
+      input
+    done = filter (\x -> Map.notMember x pending) all
+  in foldl (\acc x -> Map.insert x "" acc) pending done
+
+part1 g
+    | null g    = []
+    | otherwise = next : (part1 $ filter (/=next) <$> Map.delete next g)
+    where next = head $ Map.keys $ Map.filter (=="") g
 
 -- stringify str []                     = str
 -- stringify ""  ((Order from to) : os) = stringify ([from, to]) os
@@ -58,27 +84,27 @@ parseLine str = Order from to
 --     (Nothing, Nothing) -> stringify str (os ++ [o])
 
 
-stringify2 :: [Order] -> String
-stringify2 os = sortBy sortFn  start
- where
-  beforeList = orderToBefore <$> os
-  start      = nub $ foldl addOrderToString "" os
-  sortFn c1 c2 | elem (Order c1 c2) os = LT
-  sortFn c1 c2 | elem (Order c2 c1) os = GT
-  sortFn c1 c2                         = compare
-    (fromMaybe 0 $ elemIndex c1 beforeList)
-    (fromMaybe 0 $ elemIndex c2 beforeList)
+-- stringify2 :: [Order] -> String
+-- stringify2 os = sortBy sortFn  start
+--  where
+--   beforeList = orderToBefore <$> os
+--   start      = nub $ foldl addOrderToString "" os
+--   sortFn c1 c2 | elem (Order c1 c2) os = LT
+--   sortFn c1 c2 | elem (Order c2 c1) os = GT
+--   sortFn c1 c2                         = compare c1 c2
+--     -- (fromMaybe 0 $ elemIndex c1 beforeList)
+--     -- (fromMaybe 0 $ elemIndex c2 beforeList)
 
-orderToBefore :: Order -> Char
-orderToBefore (Order before _) = before
+-- orderToBefore :: Order -> Char
+-- orderToBefore (Order before _) = before
 
-addOrderToString :: String -> Order -> String
-addOrderToString str (Order before after) =
-  case (elemIndex before str, elemIndex after str) of
-    (Just _ , Just _ ) -> str
-    (Just _ , Nothing) -> str ++ [after]
-    (Nothing, Just _ ) -> str ++ [before]
-    (Nothing, Nothing) -> str ++ [before, after]
+-- addOrderToString :: String -> Order -> String
+-- addOrderToString str (Order before after) =
+--   case (elemIndex before str, elemIndex after str) of
+--     (Just _ , Just _ ) -> str
+--     (Just _ , Nothing) -> str ++ [after]
+--     (Nothing, Just _ ) -> str ++ [before]
+--     (Nothing, Nothing) -> str ++ [before, after]
 
 
 -- Part B
