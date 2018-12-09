@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Day05
+module Day06
   ( main
   , test
   )
