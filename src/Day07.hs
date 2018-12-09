@@ -8,23 +8,15 @@ module Day05
 where
 
 import Common.Test
-import Data.List
-import Control.Arrow
-import Debug.Trace
-import Data.Maybe
-
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
-import Data.Maybe
-import Data.Char
-import Data.Ord
 
 main :: IO ()
 main = do
   fileString <- readFile "src/input/07.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
-  -- print $ solvePartB 10000 fileLines
+  -- print $ solvePartB fileLines
   return ()
 
 -- Part A
@@ -34,9 +26,8 @@ data Order = Order Char Char deriving (Show, Eq)
 solvePartA :: [String] -> String
 solvePartA strLines = str
  where
-  tuples = parseLine <$> strLines
-  str    = part1 $ graph tuples
-
+  orders = parseLine <$> strLines
+  str    = graphToString $ toGraph orders
 
 parseLine :: String -> Order
 parseLine str = Order from to
@@ -45,91 +36,49 @@ parseLine str = Order from to
   from : _ = parts !! 1
   to   : _ = parts !! 7
 
-stringify3 :: [Order] -> String
-stringify3 os = ""
-
+toFrom :: Order -> Char
 toFrom (Order from _) = from
+
+toTo :: Order -> Char
 toTo (Order _ to) = to
 
-graph :: [Order] -> Map.Map Char String
-graph input =
+allChars :: [Order] -> String
+allChars orders = List.nub $ map toFrom orders ++ map toTo orders
+
+toGraph :: [Order] -> Map.Map Char String
+toGraph orders =
   let
-    all     = List.nub $ (map toFrom input) ++ (map toTo input)
     pending = foldl
-      (\acc (Order from to) -> Map.insertWith (++) (to) [(from)] acc)
+      (\acc (Order from to) -> Map.insertWith (++) to [from] acc)
       Map.empty
-      input
-    done = filter (\x -> Map.notMember x pending) all
+      orders
+    done = filter (`Map.notMember` pending) $ allChars orders
   in foldl (\acc x -> Map.insert x "" acc) pending done
 
-part1 g
-    | null g    = []
-    | otherwise = next : (part1 $ filter (/=next) <$> Map.delete next g)
-    where next = head $ Map.keys $ Map.filter (=="") g
-
--- stringify str []                     = str
--- stringify ""  ((Order from to) : os) = stringify ([from, to]) os
--- stringify str (o@(Order from to) : os) =
---   case (elemIndex from str, elemIndex to $ traceShowId str) of
---     (Just i, Just j)
---       | i < j -> stringify str os
---       | otherwise -> traceShowId
---       $  stringify (delete from $ delete to str) (os ++ [o])
---     (_, Just i) -> stringify
---       (let (before, after) = splitAt i str in before ++ [from] ++ after)
---       os
---     (Just i, _) -> stringify
---       (let (before, after) = splitAt (i + 1) str in before ++ [to] ++ after)
---       os
---     (Nothing, Nothing) -> stringify str (os ++ [o])
-
-
--- stringify2 :: [Order] -> String
--- stringify2 os = sortBy sortFn  start
---  where
---   beforeList = orderToBefore <$> os
---   start      = nub $ foldl addOrderToString "" os
---   sortFn c1 c2 | elem (Order c1 c2) os = LT
---   sortFn c1 c2 | elem (Order c2 c1) os = GT
---   sortFn c1 c2                         = compare c1 c2
---     -- (fromMaybe 0 $ elemIndex c1 beforeList)
---     -- (fromMaybe 0 $ elemIndex c2 beforeList)
-
--- orderToBefore :: Order -> Char
--- orderToBefore (Order before _) = before
-
--- addOrderToString :: String -> Order -> String
--- addOrderToString str (Order before after) =
---   case (elemIndex before str, elemIndex after str) of
---     (Just _ , Just _ ) -> str
---     (Just _ , Nothing) -> str ++ [after]
---     (Nothing, Just _ ) -> str ++ [before]
---     (Nothing, Nothing) -> str ++ [before, after]
+graphToString :: Map.Map Char String -> String
+graphToString graph = if null graph
+  then []
+  else c : graphToString (filter (/= c) <$> Map.delete c graph)
+  where c = head $ Map.keys $ Map.filter null graph
 
 
 -- Part B
 
-solvePartB :: [String] -> Int
-solvePartB _ = 10
+-- solvePartB :: [String] -> Int
+-- solvePartB _ = error "Todo"
 
 -- Test
 
 test :: IO ()
 test = do
   testSolvePartA
-  -- testParseCoord
-  -- testField
-  -- testDistance
-  -- testDistanceField
-  -- testShortestDistance
-  -- testSolvePartB
-  -- testDistToAll
   return ()
 
 
 sample :: [String]
 sample =
-  [ "Step C must be finished before step F can begin."
+  [ "Step C must be finished before step A can begin."
+  , "Step C must be finished before step F can begin."
   , "Step A must be finished before step B can begin."
   , "Step A must be finished before step D can begin."
   , "Step B must be finished before step E can begin."
