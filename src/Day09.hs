@@ -10,7 +10,6 @@ where
 import Common.Test
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Debug.Trace
 
 main :: IO ()
 main = do
@@ -20,8 +19,8 @@ main = do
 
 -- Part A
 
-data Marble = Marble Int deriving (Show, Eq, Ord)
-data Player = Player Int deriving (Show, Eq, Ord)
+newtype Marble = Marble Int deriving (Show, Eq, Ord)
+newtype Player = Player Int deriving (Show, Eq, Ord)
 type Circle = [Marble]
 data State = State { marbles :: [Marble], circle :: Circle, players :: [Player], scores :: Map Player Int , lastMarblePoints :: Int} deriving (Show)
 
@@ -53,8 +52,8 @@ removeMarble circle = (marble, newCircle)
 
 -- anticlockwise
 rotateLeft :: [a] -> [a]
-rotateLeft [] = []
-rotateLeft xs = tail xs ++ [head xs]
+rotateLeft []       = []
+rotateLeft (x : xs) = xs ++ [x]
 
 -- clockwise
 rotateRight :: [a] -> [a]
@@ -62,10 +61,9 @@ rotateRight [] = []
 rotateRight xs = last xs : init xs
 
 applyTimes :: Int -> (a -> a) -> a -> a
-applyTimes n f x = iterate f x !! n
-
-currentMarble :: Circle -> Marble
-currentMarble = head
+-- applyTimes n f x = iterate f x !! n
+applyTimes 0 f x = x
+applyTimes n f x = applyTimes (n-1) f (f x)
 
 isSpecial :: Marble -> Bool
 isSpecial (Marble n) = n `mod` 23 == 0
@@ -74,37 +72,32 @@ points :: Marble -> Int
 points (Marble n) = n
 
 gameStep :: State -> State
-gameStep (State { marbles, circle, players, scores })
-  = let
-      marble    = head marbles
-      player    = head players
-      newCircle = if isSpecial marble
-        then snd $ removeMarble circle
-        else placeMarble marble circle
-      worth = if isSpecial marble
-        then
-          let otherMarble = fst $ removeMarble circle
-          in points marble + points otherMarble
-        else 0
-      newScores = if isSpecial marble
-        then Map.insertWith (+) player worth scores
-        else scores
-    in State
-      { marbles          = tail marbles
-      , players          = rotateLeft players
-      , circle           = newCircle
-      , scores           = newScores
-      , lastMarblePoints = points marble
-      }
+gameStep State { marbles, circle, players, scores } =
+  let
+    marble                 = head marbles
+    player                 = head players
+    (newCircle, newScores) = if isSpecial marble
+      then
+        let
+          (takenMarble, circleWithoutMarble) = removeMarble circle
+          pointsForPlayer = points marble + points takenMarble
+          updatedScore = Map.insertWith (+) player pointsForPlayer scores
+        in (circleWithoutMarble, updatedScore)
+      else (placeMarble marble circle, scores)
+  in State
+    { marbles          = tail marbles
+    , players          = rotateLeft players
+    , circle           = newCircle
+    , scores           = newScores
+    , lastMarblePoints = points marble
+    }
 
 
 solvePartA :: Int -> Int -> Int
 solvePartA nPlayers endingMarblePoints =
   let
-    state = initialState nPlayers
-    steps = iterate gameStep state
-    isEndStep (State { lastMarblePoints }) = lastMarblePoints >= endingMarblePoints
-    (State { scores }) = head $ dropWhile (not . isEndStep) steps
+    state              = initialState nPlayers
+    State {scores} = applyTimes endingMarblePoints gameStep state
     highscore          = maximum $ snd <$> Map.toList scores
   in highscore
 
@@ -123,6 +116,7 @@ test = do
   testRotate
   testPlaceMarble
   testRemoveMarble
+  testApplyNTimes
   -- testSolvePartB
   return ()
 
@@ -138,10 +132,12 @@ testSolvePartA = runTests
   , ((30, 5807), 37305)
   ]
 
+testRotate :: IO ()
 testRotate = runTests
   id
   [(rotateRight [1, 2, 3], [3, 1, 2]), (rotateLeft [1, 2, 3], [2, 3, 1])]
 
+testPlaceMarble :: IO ()
 testPlaceMarble = runTests
   (uncurry placeMarble)
   [ ((Marble 1, [Marble 0])          , [Marble 1, Marble 0])
@@ -149,6 +145,10 @@ testPlaceMarble = runTests
   , ((Marble 3, Marble <$> [2, 1, 0]), Marble <$> [3, 0, 2, 1])
   ]
 
+testApplyNTimes :: IO ()
+testApplyNTimes = runTests (id) [(applyTimes 3 (subtract 1) 10, 7)]
+
+testRemoveMarble :: IO ()
 testRemoveMarble = runTests
   removeMarble
   [ ( Marble
