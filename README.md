@@ -1,4 +1,4 @@
-# Advent of code 2018
+# Advent of code 2018 + 2019
 
 ## Setup
 
@@ -9,8 +9,7 @@ Install haskell `stack`
 ```shell
 $ stack setup
 $ stack ghci
-> :l src/Day03.hs
+> :l src/Year2019/Day01.hs
 > main
 > test
-
 ```
