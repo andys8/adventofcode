@@ -15,7 +15,7 @@ import qualified Data.Set as S
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/03.txt"
+  fileString <- readFile "src/Year2018/input/03.txt"
   let fileLines = lines fileString
   putStrLn $ show $ solvePartA fileLines
   putStrLn $ show $ solvePartB fileLines

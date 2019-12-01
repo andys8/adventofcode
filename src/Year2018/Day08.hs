@@ -11,7 +11,7 @@ import Common.Test
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/08.txt"
+  fileString <- readFile "src/Year2018/input/08.txt"
   let entries = intList fileString
   print $ solvePartA entries
   print $ solvePartB entries

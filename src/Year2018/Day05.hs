@@ -12,7 +12,7 @@ import Data.Char
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/05.txt"
+  fileString <- readFile "src/Year2018/input/05.txt"
   let polymer = filter (/= '\n') fileString
   print $ solvePartA polymer
   print $ solvePartB polymer

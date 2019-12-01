@@ -8,7 +8,7 @@ import Text.Read
 import Common.Test
 
 main = do
-  fileString <- readFile "src/input/01.txt"
+  fileString <- readFile "src/Year2018/input/01.txt"
   return $ solve fileString
 
 solve :: String -> Integer

@@ -20,7 +20,7 @@ import Control.Arrow
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/04.txt"
+  fileString <- readFile "src/Year2018/input/04.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
   print $ solvePartB fileLines

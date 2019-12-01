@@ -15,7 +15,7 @@ import Data.Maybe
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/06.txt"
+  fileString <- readFile "src/Year2018/input/06.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
   print $ solvePartB 10000 fileLines

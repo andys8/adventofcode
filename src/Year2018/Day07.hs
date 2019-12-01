@@ -13,7 +13,7 @@ import qualified Data.List as List
 
 main :: IO ()
 main = do
-  fileString <- readFile "src/input/07.txt"
+  fileString <- readFile "src/Year2018/input/07.txt"
   let fileLines = lines fileString
   print $ solvePartA fileLines
   -- print $ solvePartB fileLines
